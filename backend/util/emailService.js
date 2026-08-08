@@ -1,13 +1,20 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-// ── Gmail transporter setup ────────────────────────────────────────
+// ── Gmail transporter setup (port 587 for Render compatibility) ────
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS, // Gmail App Password (16 digits)
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
+  // Force IPv4 — Render free tier doesn't support IPv6
+  family: 4,
 });
 
 // ── Shared email styles ────────────────────────────────────────────
