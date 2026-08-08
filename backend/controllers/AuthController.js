@@ -31,18 +31,31 @@ module.exports.Signup = async (req, res, next) => {
       verificationToken,
     });
 
-    // Send verification email
-    await sendVerificationEmail(email, username, verificationToken);
+    // Try sending verification email — if it fails, auto-verify user
+    try {
+      await sendVerificationEmail(email, username, verificationToken);
+      res.status(201).json({
+        message: "Account created! Please check your email to verify your account.",
+        success: true,
+        user,
+      });
+    } catch (emailErr) {
+      console.error("Email sending failed, auto-verifying user:", emailErr.message);
+      // Auto-verify since email service is unavailable
+      user.isVerified = true;
+      user.verificationToken = null;
+      await user.save();
 
-    res.status(201).json({
-      message: "Account created successfully! Please check your email to verify your account.",
-      success: true,
-      user,
-    });
+      const token = createSecretToken(user._id);
+      res.cookie("token", token, { withCredentials: true, httpOnly: false });
+
+      res.status(201).json({
+        message: "Account created successfully! You can login now.",
+        success: true,
+        user,
+      });
+    }
     next();
-  } catch (error) {
-    console.error("Signup error:", error);
-    res.status(500).json({ message: error.message || "Server error during signup" });
   }
 };
 
